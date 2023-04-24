@@ -10,23 +10,14 @@ pipeline {
     	}
     
  
-    stage('terraform plan') {
+    stage('terraform destroy') {
       steps {
 	    sh 'terraform init'
         sh 'terraform --version'
-		sh 'terraform plan '
+		sh 'terraform destroy'
       }
     }
 
-    stage('eks-deploy') {
-      steps {
-        sh 'terraform apply  -input=false -auto-approve'
-  	  	    timeout(time: 30, unit: 'MINUTES') {
-                    
-                } 
-      }
-
-    }
 
   }
   
