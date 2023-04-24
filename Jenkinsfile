@@ -14,7 +14,7 @@ pipeline {
       steps {
 	    sh 'terraform init'
         sh 'terraform --version'
-		sh 'terraform destroy'
+		sh 'terraform destroy --auto-approve'
       }
     }
 
