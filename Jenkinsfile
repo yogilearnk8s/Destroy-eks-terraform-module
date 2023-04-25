@@ -10,14 +10,24 @@ pipeline {
     	}
     
  
-    stage('terraform destroy') {
+    stage('terraform plan') {
       steps {
+	    sh 'pwd'
 	    sh 'terraform init'
         sh 'terraform --version'
-		sh 'terraform destroy --auto-approve'
+		sh 'terraform plan '
       }
     }
 
+    stage('eks-deploy') {
+      steps {
+        sh 'terraform apply  -input=false -auto-approve'
+  	  	    timeout(time: 30, unit: 'MINUTES') {
+                    
+                } 
+      }
+
+    }
 
   }
   

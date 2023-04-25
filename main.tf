@@ -2,6 +2,19 @@ provider "aws" {
   region     = "ap-south-1"
 }
 
+//data "aws_eks_cluster" "default" {
+//  name = module.eks_cluster_creation.cluster_id
+//}
+
+data "aws_eks_cluster_auth" "default" {
+  name = module.eks_cluster_creation.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = module.eks_cluster_creation.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks_cluster_creation.cluster_certificate_authority_data)
+  token = data.aws_eks_cluster_auth.default.token
+}
 
 terraform {
   backend "s3" {
@@ -10,6 +23,7 @@ terraform {
     region = "ap-south-1"
   }
 }
+
 
 
 
@@ -37,9 +51,9 @@ filter {
 }
 }
 
-data "aws_iam_role" "example" {
-  name = "sandboxcluster-eks-iam-role"
-}
+//data "aws_iam_role" "example" {
+//  name = "sandboxcluster-eks-iam-role"
+//}
 
 
 data "aws_availability_zones" "yogi-az" {
@@ -94,8 +108,48 @@ module "eks_cluster_creation" {
   subnet_ids        =  flatten([aws_subnet.public-subnets[*].id])
   vpc_id    = data.aws_vpc.yogi-vpc.id
   //create_kms_key = false
+  
+  //  manage_aws_auth_configmap = true
+    aws_auth_users = [
+    {
+      userarn  = "arn:aws:iam::014742839986:user/yogitest"
+      username = "yogitest"
+      groups   = ["system:masters"]
+    }
+  ]
+  
+    aws_auth_accounts = [
+    "014742839986"
+  ]
+  
   depends_on = [module.eks_nodegroup_role]
 }
+
+
+resource "null_resource" "kubectl" {
+    provisioner "local-exec" {
+        command = "aws eks --region ap-south-1 update-kubeconfig --name ${local.name}"
+    }
+}
+
+resource "kubernetes_config_map" "example" {
+  metadata {
+    name = "example-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    "mapUsers" = <<EOT
+- userarn: arn:aws:iam::014742839986:user/yogitest
+  username: yogitest
+  groups:
+    - system:masters
+EOT
+  }
+
+  depends_on = [module.eks_cluster_creation.cluster_name]
+}
+
 
 //module "nodegroup_creation" {
 //source = "./node-group-creation"
