@@ -108,8 +108,8 @@ module "eks_cluster_creation" {
   subnet_ids        =  flatten([aws_subnet.public-subnets[*].id])
   vpc_id    = data.aws_vpc.yogi-vpc.id
   //create_kms_key = false
-  
-  //  manage_aws_auth_configmap = true
+   create_aws_auth_configmap = true
+   manage_aws_auth_configmap = true
     aws_auth_users = [
     {
       userarn  = "arn:aws:iam::014742839986:user/yogitest"
@@ -130,29 +130,37 @@ resource "null_resource" "kubectl" {
     provisioner "local-exec" {
         command = "aws eks --region ap-south-1 update-kubeconfig --name ${local.name}"
     }
-}
-
-resource "kubernetes_config_map" "example" {
-  metadata {
-    name = "example-auth"
-    namespace = "kube-system"
-  }
-
-  data = {
-    "mapUsers" = <<EOT
-- userarn: arn:aws:iam::014742839986:user/yogitest
-  username: yogitest
-  groups:
-    - system:masters
-EOT
-  }
-
-  depends_on = [module.eks_cluster_creation.cluster_name]
+	depends_on = [module.eks_cluster_creation]
 }
 
 
-//module "nodegroup_creation" {
-//source = "./node-group-creation"
-//depends_on = [module.eks_cluster_creation]
+
+//resource "kubernetes_config_map" "example" {
+//  metadata {
+//    name = "example-auth"
+//    namespace = "kube-system"
+//  }
+//
+//  data = {
+//     mapRoles = <<ROLES
+// - rolearn: ${module.eks_nodegroup_role.eks_role}
+//  username: system:node:{{EC2PrivateDNSName}}
+//  groups:
+//    - system:bootstrappers
+//    - system:nodes
+//ROLES
+//  }
+//
+//  depends_on = [null_resource.kubectl]
 //}
 
+
+module "nodegroup_creation" {
+source = "./node-group-creation"
+depends_on = [module.eks_cluster_creation]
+}
+
+module "app_deployment"{
+  source = "./eks_app_deployment"
+  depends_on = [module.nodegroup_creation]
+}
