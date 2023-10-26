@@ -14,21 +14,21 @@ pipeline {
     
      stage('terraform plan destroy') {
       steps {
-	//      sh 'terraform init'
-	//    sh 'terraform plan -destroy'
+	      sh 'terraform init'
+	    sh 'terraform plan -destroy'
       
-    sh 'terraform state list'
-      sh 'terraform state rm module.eks_cluster_creation.kubernetes_config_map.aws_auth[0]'
+  //  sh 'terraform state list'
+  //    sh 'terraform state rm module.eks_cluster_creation.kubernetes_config_map.aws_auth[0]'
       }
     }
 
-//    stage('terraform destroy') {
-//      steps {
-//	      sh 'terraform init'
-//	    sh 'terraform destroy --auto-approve'
+    stage('terraform destroy') {
+      steps {
+	      sh 'terraform init'
+	    sh 'terraform destroy --auto-approve'
 
-//      }
-//    }
+      }
+    }
 
   }
   
