@@ -28,7 +28,7 @@ terraform {
 
 
 locals {
-  name   = "Sandbox-EKSCluster1"
+  name   = "Sandbox-EKSCluster3"
   region = "ap-south-1"
 
  
@@ -83,6 +83,24 @@ data "aws_route_table" "publicrt" {
 }
 
 
+resource "aws_security_group" "eks_cluster_sg" {
+ name = "eks_security_group" 
+ vpc_id            = data.aws_vpc.yogi-vpc.id
+   ingress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+	}
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+	}
+}
+
+
 resource "aws_route_table_association" "public-route-1" {
   count = "${length(var.public-subnet-cidr1)}"
   //subnet_id      = "${data.aws_subnet_ids.public-subnets.ids}"
@@ -108,6 +126,8 @@ module "eks_cluster_creation" {
   subnet_ids        =  flatten([aws_subnet.public-subnets[*].id])
   vpc_id    = data.aws_vpc.yogi-vpc.id
   //create_kms_key = false
+
+
    create_aws_auth_configmap = true
    manage_aws_auth_configmap = true
     aws_auth_users = [
@@ -160,17 +180,17 @@ source = "./node-group-creation"
 depends_on = [module.eks_cluster_creation]
 }
 
-module "app_deployment"{
-  source = "./eks_app_deployment"
-  depends_on = [module.nodegroup_creation]
-}
-
-//module "wordpress_db_deployment"{
-//  source = "./eks_wordpress_db_deployment"
+//module "app_deployment"{
+//  source = "./eks_app_deployment"
 //  depends_on = [module.nodegroup_creation]
 //}
 
-//module "wordpress_app_deployment"{
-//  source = "./eks_wordpress_app_deployment"
-//  depends_on = [module.wordpress_db_deployment]
-//}
+module "wordpress_db_deployment"{
+  source = "./eks_wordpress_db_deployment"
+  depends_on = [module.nodegroup_creation]
+}
+
+module "wordpress_app_deployment"{
+  source = "./eks_wordpress_app_deployment"
+  depends_on = [module.wordpress_db_deployment]
+}

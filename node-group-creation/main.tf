@@ -1,13 +1,3 @@
-resource "aws_launch_template" "test" {
-  name          = "test"
-  instance_type = "t2.medium"
-  image_id      = "ami-07f0f3deaa0c4dffa"
-  update_default_version = false  
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
 
 
 data "aws_vpc" "yogi-vpc"{
@@ -60,6 +50,38 @@ count = "${length(var.public-subnet-cidr)}"
 id = "${tolist(data.aws_subnets.public-subnets.ids)[count.index]}"
 }
 
+
+resource "aws_security_group" "node_group_sg" {
+  
+ vpc_id            = data.aws_vpc.yogi-vpc.id
+   ingress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+	}
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+	}
+}
+
+resource "aws_launch_template" "test" {
+  name          = "test"
+ // instance_type = "t2.medium"
+  image_id      = "ami-07f0f3deaa0c4dffa"
+  update_default_version = false  
+  key_name = "jenkins"
+  lifecycle {
+    create_before_destroy = true
+  }
+   vpc_security_group_ids = [aws_security_group.node_group_sg.id]
+}
+
+
+
 resource "aws_eks_node_group" "worker-node-group" {
  count = "${length(var.public-subnet-cidr)}"
   cluster_name  = data.aws_eks_cluster.eks_creation.name
@@ -70,15 +92,17 @@ resource "aws_eks_node_group" "worker-node-group" {
   subnet_ids = flatten([data.aws_subnet.public-subnets[*].id])
   //subnet_ids = ["subnet-06fa0847fb0ac8845","subnet-0ae53cf68d4b875f4"]
   instance_types = ["t2.medium"]
-  launch_template {
-    name    = aws_launch_template.test.name
-    version = aws_launch_template.test.latest_version
-  }
+
+ // launch_template {
+ //   name    = aws_launch_template.test.name
+ //   version = aws_launch_template.test.latest_version
+ // }
   scaling_config {
    desired_size = 2
    max_size   = 2
    min_size   = 1
   }
+
  
 //  depends_on = [
   // aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
