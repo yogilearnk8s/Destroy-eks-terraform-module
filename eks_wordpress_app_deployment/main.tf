@@ -1,8 +1,9 @@
-resource "kubernetes_namespace" "wp_namespace" {
+data "kubernetes_namespace" "wp_namespace" {
   metadata {
     name = "wp-namespace"
   }
 }
+
 
 resource "kubernetes_secret" "wordpress_app_secret" {
     metadata {
@@ -67,7 +68,7 @@ resource "kubernetes_persistent_volume" "wp_persistent_volume" {
 resource "kubernetes_deployment" "wordpress_app" {
   metadata {
     name      = "wp-app-deployment"
-    namespace = kubernetes_namespace.wp_namespace.metadata.0.name
+    namespace = data.kubernetes_namespace.wp_namespace.metadata.0.name
   }
   spec {
     replicas = 2
@@ -131,7 +132,7 @@ resource "kubernetes_deployment" "wordpress_app" {
 resource "kubernetes_service" "wp_app_service" {
   metadata {
     name      = "wp-app-service"
-    namespace = kubernetes_namespace.wp_namespace.metadata.0.name
+    namespace = data.kubernetes_namespace.wp_namespace.metadata.0.name
   }
   spec {
     selector = {

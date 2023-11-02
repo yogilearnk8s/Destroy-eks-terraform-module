@@ -1,4 +1,4 @@
-data "kubernetes_namespace" "wp_namespace" {
+resource "kubernetes_namespace" "wp_namespace" {
   metadata {
     name = "wp-namespace"
   }
@@ -48,7 +48,7 @@ resource "kubernetes_secret" "wordpress_db_secret" {
 resource "kubernetes_persistent_volume" "wp_db_persistent_volume" {
   metadata {
     name = "mysql-pv-claim"
-
+    
   }
   spec {
     capacity = {
@@ -68,7 +68,7 @@ resource "kubernetes_persistent_volume" "wp_db_persistent_volume" {
 resource "kubernetes_deployment" "wordpress_db" {
   metadata {
     name      = "wp-db-deployment"
-    namespace = data.kubernetes_namespace.wp_namespace.metadata.0.name
+    namespace = kubernetes_namespace.wp_namespace.metadata.0.name
   }
   spec {
     replicas = 2
@@ -82,7 +82,7 @@ resource "kubernetes_deployment" "wordpress_db" {
     template {
       metadata {
         labels = {
-          app = "wordpress-db"
+          app = "wordpress_db"
           tier = "backend"
         }
       }
@@ -117,7 +117,16 @@ resource "kubernetes_deployment" "wordpress_db" {
             name = "wordpress-persistent-storage"
             mount_path =  "/var/lib/mysql"
           }
-
+            resources {
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+            requests = {
+              cpu    = "250m"
+              memory = "50Mi"
+            }
+          }
         }
         volume{
           name = "wordpress-persistent-storage"
