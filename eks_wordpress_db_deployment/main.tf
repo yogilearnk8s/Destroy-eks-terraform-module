@@ -48,13 +48,17 @@ resource "kubernetes_secret" "wordpress_db_secret" {
 resource "kubernetes_persistent_volume" "wp_db_persistent_volume" {
   metadata {
     name = "mysql-pv-claim"
+    labels = {
+       name = "wp-db"
+    }
     
   }
   spec {
+    storage_class_name = "gp2"
     capacity = {
       storage = "20Gi"
     }
-    access_modes = ["ReadWriteOnce"]
+    access_modes = ["ReadWriteMany"]
     persistent_volume_source {
         csi {
           driver = "ebs.csi.aws.com"
@@ -62,6 +66,28 @@ resource "kubernetes_persistent_volume" "wp_db_persistent_volume" {
         }
     }
 
+  }
+}
+
+
+resource "kubernetes_persistent_volume_claim" "wp_db_persistent_volume_claim" {
+  metadata {
+    name = "wp-db-presistentclaim"
+  }
+  spec {
+    storage_class_name = "gp2"
+    access_modes = ["ReadWriteMany"]
+    resources {
+      requests = {
+        storage = "10Gi"
+      }
+    }
+    selector {
+      match_labels = {
+         name = "wp-db"
+      }  
+    }
+    volume_name = "${kubernetes_persistent_volume.wp_db_persistent_volume.metadata.0.name}"
   }
 }
 
@@ -131,7 +157,7 @@ resource "kubernetes_deployment" "wordpress_db" {
         volume{
           name = "wordpress-persistent-storage"
           persistent_volume_claim {
-            claim_name = "mysql-pv-claim"
+            claim_name = "wp-db-presistentclaim"
           }
         }
 
@@ -139,4 +165,5 @@ resource "kubernetes_deployment" "wordpress_db" {
       }
     }
   }
+   depends_on = [ kubernetes_persistent_volume.wp_db_persistent_volume]
 }
